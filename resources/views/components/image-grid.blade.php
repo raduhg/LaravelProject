@@ -68,7 +68,7 @@
 <div class="grid-body">
     <div class="row">
         <div class="column">
-            <img src="/images/team_at_podragu.jpeg" >
+            <img src="/images/Bucura-1.jpg" >
             <img src="/images/team_on_moldoveanu.jpeg" >
         </div>
 

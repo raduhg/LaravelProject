@@ -1,8 +1,19 @@
 <div class="flex flex-col gap-1">
-    <form method="POST" action="{{ route('posts.comments.store', $post->id) }}">
+    {{--
+        We add a 'comment-form' class and a 'data-post-id' attribute.
+        - The class lets our JavaScript target this specific form.
+        - The data attribute tells the script which post this comment belongs to,
+          so it knows where to add the new comment on the page.
+    --}}
+    <form method="POST" action="{{ route('posts.comments.store', $post->id) }}" class="comment-form" data-post-id="{{ $post->id }}">
         @csrf
-        <textarea name="content" placeholder="{{ __('Leave a comment') }}" rows="1"
-            class="block w-full bg-gray-700 border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md shadow-sm" required>{{ old('content') }}</textarea>
-        <x-primary-button class="mt-4">{{ __('POST') }}</x-primary-button>
+        <textarea
+            name="content"
+            placeholder="{{ __('Leave a comment') }}"
+            rows="1"
+            class="block w-full bg-gray-700 border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md shadow-sm"
+            required
+        >{{ old('content') }}</textarea>
+        <x-primary-button class="mt-4" type="submit">{{ __('POST') }}</x-primary-button>
     </form>
 </div>

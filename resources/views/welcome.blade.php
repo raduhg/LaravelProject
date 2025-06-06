@@ -66,7 +66,7 @@
                 our driving licence, we started taking more of our friends and later, our siblings on trips.<br><br>
 
                 Four years ago we organised our first expedition as guides. Since then we have
-                organised tens of camping trips, became more experienced and founded this platform so anybody can join
+                organised tens of camping trips, became more experienced, and founded this platform so anybody can join
                 us.
             <p>
         </div>
@@ -102,7 +102,7 @@
     </div>
 
     <div class="container bg-gray-900 text-white bg-opacity-5 min-w-full flex flex-col justify-center items-center gap-8 pb-6">
-        <p class="text-2xl mx-16 ">You can contact us using this form, even if you are not e member.</p>
+        <p class="text-2xl mx-16 ">You can contact us using this form, even if you are not a member.</p>
 
         <div class="bg-gray-100 bg-opacity-10 rounded-xl p-8">
 

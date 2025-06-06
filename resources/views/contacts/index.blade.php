@@ -7,7 +7,7 @@
     <div class=" mx-auto sm:px-6 lg:px-8 flex flex-row flex-wrap gap-6">
         @foreach ($contacts as $contact)
             <div class="pt-12">
-                <div class="container sm:max-w-80 bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg">
+                <div class="container sm:max-w-80 bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg p-5">
                     <div class="text-white text-center text-xl font-semibold my-2">From: {{ $contact->name }}</div>
 
                     <div class="text-yellow-200 m-2">Email: {{ $contact->email }}</div>
