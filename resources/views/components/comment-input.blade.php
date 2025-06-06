@@ -1,10 +1,4 @@
 <div class="flex flex-col gap-1">
-    {{--
-        We add a 'comment-form' class and a 'data-post-id' attribute.
-        - The class lets our JavaScript target this specific form.
-        - The data attribute tells the script which post this comment belongs to,
-          so it knows where to add the new comment on the page.
-    --}}
     <form method="POST" action="{{ route('posts.comments.store', $post->id) }}" class="comment-form" data-post-id="{{ $post->id }}">
         @csrf
         <textarea

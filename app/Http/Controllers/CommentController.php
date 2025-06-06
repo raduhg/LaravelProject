@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\RedirectResponse;
 use App\Models\Comment;
 use App\Models\Post;
-use Illuminate\Http\JsonResponse; // <-- Add this import
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -16,10 +16,9 @@ class CommentController extends Controller
     /**
      * Store a newly created comment in storage.
      */
-    public function store(Request $request, Post $post): RedirectResponse|JsonResponse
+   public function store(Request $request, Post $post): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
-            // Note: The frontend form should have a field named 'content'
             'content' => 'required|string|max:2000',
             'parent_id' => 'nullable|exists:comments,id'
         ]);
@@ -31,15 +30,13 @@ class CommentController extends Controller
             'parent_id' => $validated['parent_id'] ?? null,
         ]);
 
-        // Check if the request is looking for a JSON response
-        if ($request->wentsJson()) {
-            // Eager load the 'user' relationship to include the commenter's name in the response
-            $comment->load('user');
-            // Return the new comment as JSON with a '201 Created' status
+        if ($request->wantsJson()) {
+
+            $comment->load('user'); 
+            
             return response()->json($comment, 201);
         }
 
-        // Fallback for non-AJAX requests
         return redirect()->route('posts.index');
     }
 
@@ -53,7 +50,6 @@ class CommentController extends Controller
         $comment->delete();
 
         if ($request->wantsJson()) {
-            // Return a simple success message for the AJAX call
             return response()->json(['message' => 'Comment deleted successfully!']);
         }
 
@@ -79,7 +75,6 @@ class CommentController extends Controller
     {
         Gate::authorize('update', $comment);
 
-        // Standardized the validation key to 'content' to match the store method
         $validated = $request->validate([
             'content' => 'required|string|max:255',
         ]);
@@ -87,7 +82,6 @@ class CommentController extends Controller
         $comment->update($validated);
 
         if ($request->wantsJson()) {
-            // Return the updated comment data
             $comment->load('user');
             return response()->json($comment);
         }
