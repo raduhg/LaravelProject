@@ -1,14 +1,8 @@
 <x-app-layout>
-    {{-- Make sure you have this meta tag in your main layout (e.g., resources/views/layouts/app.blade.php) --}}
-    {{-- <meta name="csrf-token" content="{{ csrf_token() }}"> --}}
-
-    {{-- This container will hold the flash messages. It's fixed to the top-center of the screen. --}}
     <div id="flash-message-container" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 space-y-2">
-        <!-- Success/Error messages will be injected here by JavaScript -->
     </div>
 
     <div class="max-w-2xl mx-auto p-4 sm:p-6 lg:p-8">
-        {{-- POST CREATION FORM --}}
         <form id="create-post-form" method="POST" action="{{ route('posts.store') }}" enctype="multipart/form-data">
             @csrf
             <textarea name="message" placeholder="{{ __('What\'s on your mind?') }}"
@@ -51,9 +45,7 @@
                                         class="delete-form">
                                         @csrf
                                         @method('delete')
-                                        <x-dropdown-link href="#"
-                                            onclick="event.preventDefault(); this.closest('form').submit();"
-                                            type="submit">
+                                        <x-dropdown-link href="#" type="submit">
                                             {{ __('Delete') }}
                                         </x-dropdown-link>
                                     </form>
@@ -88,11 +80,7 @@
         </div>
     </div>
 
-    <!-- ================================================================= -->
-    <!-- ======================= JAVASCRIPT SECTION ======================= -->
-    <!-- ================================================================= -->
     <script>
-        // This function needs to be in the global scope so the onclick attribute can find it.
         function toggleReplyForm(commentId) {
             const form = document.getElementById(`reply-form-${commentId}`);
             if (form) {
@@ -106,8 +94,37 @@
                 id: {{ auth()->id() ?? 'null' }},
                 is_admin: {{ (auth()->user() && auth()->user()->is_admin) ? 'true' : 'false' }}
             };
+            const modal = document.getElementById('confirmation-modal');
+            const modalConfirmButton = document.getElementById('modal-confirm-button');
+            const modalCancelButton = document.getElementById('modal-cancel-button');
+            const modalCloseButton = document.getElementById('modal-close-button');
+            let formToSubmit = null;
 
-            // --- FLASH MESSAGE FUNCTION ---
+            function showConfirmModal(form) {
+                formToSubmit = form;
+                if(modal) modal.classList.remove('hidden');
+            }
+
+            function hideConfirmModal() {
+                formToSubmit = null;
+                if(modal) modal.classList.add('hidden');
+            }
+            
+            if(modal) {
+                modalConfirmButton.addEventListener('click', () => {
+                    if (formToSubmit) {
+                        if (formToSubmit.matches('.delete-form')) {
+                            deletePost(formToSubmit);
+                        } else if (formToSubmit.matches('.delete-comment-form')) {
+                            deleteComment(formToSubmit);
+                        }
+                    }
+                    hideConfirmModal();
+                });
+                modalCancelButton.addEventListener('click', hideConfirmModal);
+                modalCloseButton.addEventListener('click', hideConfirmModal);
+            }
+
             function showFlashMessage(message, type = 'success') {
                 const container = document.getElementById('flash-message-container');
                 if (!container) return;
@@ -125,20 +142,14 @@
                 }, 5000);
             }
 
-            // --- MASTER EVENT LISTENER FOR ALL FORM SUBMISSIONS ---
             document.body.addEventListener('submit', function(e) {
                 const form = e.target.closest('form');
                 if (!form) return;
 
-                // --- CREATE POST ---
                 if (form.matches('#create-post-form')) {
                     e.preventDefault();
                     const formData = new FormData(form);
-                    fetch(form.action, {
-                        method: 'POST',
-                        body: formData,
-                        headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }
-                    })
+                    fetch(form.action, { method: 'POST', body: formData, headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }})
                     .then(response => response.json())
                     .then(post => {
                         document.getElementById('posts-container').insertAdjacentHTML('afterbegin', createPostHtml(post));
@@ -146,7 +157,6 @@
                     });
                 }
 
-                // --- LIKE/UNLIKE POST ---
                 if (form.matches('.like-form')) {
                     e.preventDefault();
                     const postId = form.dataset.postId;
@@ -166,7 +176,6 @@
                     });
                 }
 
-                // --- ADD COMMENT OR REPLY ---
                 if (form.matches('.comment-form')) {
                     e.preventDefault();
                     const postId = form.dataset.postId;
@@ -176,52 +185,57 @@
                     .then(comment => {
                         const newCommentHtml = createCommentHtml(comment);
                         if (comment.parent_id) {
-                            // It's a reply, find the parent comment's container and append it
                             const parentComment = document.getElementById(`comment-${comment.parent_id}`);
                             if (parentComment) {
-                                parentComment.insertAdjacentHTML('afterend', newCommentHtml);
+                                let childrenContainer = parentComment.querySelector('.comment-children-container');
+                                if (!childrenContainer) {
+                                    childrenContainer = document.createElement('div');
+                                    childrenContainer.className = 'mt-4 border-l-2 border-gray-200 dark:border-gray-600 pl-4 comment-children-container';
+                                    parentComment.appendChild(childrenContainer);
+                                }
+                                childrenContainer.insertAdjacentHTML('beforeend', newCommentHtml);
                             }
                         } else {
-                            // It's a top-level comment, add it to the top of the list
                             document.getElementById(`comments-section-${postId}`).insertAdjacentHTML('afterbegin', newCommentHtml);
                         }
                         const countEl = document.getElementById(`comment-count-${postId}`);
                         countEl.textContent = parseInt(countEl.textContent || '0') + 1;
                         form.reset();
+                        if (comment.parent_id) {
+                           form.classList.add('hidden'); 
+                        }
                     });
                 }
 
-                // --- DELETE POST ---
-                if (form.matches('.delete-form')) {
+                if (form.matches('.delete-form') || form.matches('.delete-comment-form')) {
                     e.preventDefault();
-                    if (!confirm('Are you sure you want to delete this post?')) { return; }
-                    const postId = form.closest('[id^="post-"]').id.split('-')[1];
-                    fetch(form.action, { method: 'POST', body: new FormData(form), headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }})
-                    .then(response => response.json())
-                    .then(data => {
-                        document.getElementById(`post-${postId}`).remove();
-                        showFlashMessage(data.message, 'success');
-                    });
-                }
-
-                // --- DELETE COMMENT ---
-                if (form.matches('.delete-comment-form')) {
-                    e.preventDefault();
-                    if (!confirm('Are you sure you want to delete this comment?')) { return; }
-                    const commentDiv = form.closest('[id^="comment-"]');
-                    const postId = form.closest('[id^="post-"]').id.split('-')[1];
-                    fetch(form.action, { method: 'POST', body: new FormData(form), headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }})
-                    .then(response => {
-                        if (response.ok) {
-                            commentDiv.remove();
-                            const countEl = document.getElementById(`comment-count-${postId}`);
-                            countEl.textContent = parseInt(countEl.textContent) - 1;
-                        } else { throw new Error('Failed to delete comment.'); }
-                    });
+                    showConfirmModal(form);
                 }
             });
 
-            // --- HTML CREATION HELPER FUNCTIONS ---
+            function deletePost(form) {
+                const postId = form.closest('[id^="post-"]').id.split('-')[1];
+                fetch(form.action, { method: 'POST', body: new FormData(form), headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }})
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById(`post-${postId}`).remove();
+                    showFlashMessage(data.message, 'success');
+                });
+            }
+
+            function deleteComment(form) {
+                const commentDiv = form.closest('[id^="comment-"]');
+                const postId = form.closest('[id^="post-"]').id.split('-')[1];
+                fetch(form.action, { method: 'POST', body: new FormData(form), headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }})
+                .then(response => {
+                    if (response.ok) {
+                        commentDiv.remove();
+                        const countEl = document.getElementById(`comment-count-${postId}`);
+                        countEl.textContent = parseInt(countEl.textContent) - 1;
+                    } else { throw new Error('Failed to delete comment.'); }
+                });
+            }
+
             function createPostHtml(post) {
                 const imageUrl = post.image ? `<img src="/storage/${post.image}" style="max-width:100%; max-height:550px;" class="self-center">` : '';
                 let dropdownHtml = '';
@@ -232,12 +246,43 @@
             }
 
             function createCommentHtml(comment) {
-                let deleteButtonHtml = '';
-                if (authUser.id === comment.user_id || authUser.is_admin) {
-                    deleteButtonHtml = `<form method="POST" action="/comments/${comment.id}" class="delete-comment-form"> <input type="hidden" name="_token" value="${csrfToken}"> <input type="hidden" name="_method" value="DELETE"> <button type="submit" class="text-xs text-red-500 hover:text-red-700">Delete</button> </form>`;
+                let optionsDropdownHtml = '';
+                if (authUser.id === comment.user.id || authUser.is_admin) {
+                    optionsDropdownHtml = `<div x-data="{ open: false }" @@click.outside="open = false" class="relative"> <button @@click="open = !open" class="text-gray-400 hover:text-gray-600"> <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" /></svg> </button> <div x-show="open" class="absolute z-50 mt-2 w-48 rounded-md shadow-lg right-0 bg-white ring-1 ring-black ring-opacity-5" style="display: none;"> <div class="py-1"> <form method="POST" action="/comments/${comment.id}" class="delete-comment-form"> <input type="hidden" name="_token" value="${csrfToken}"> <input type="hidden" name="_method" value="DELETE"> <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Delete</button> </form> </div> </div> </div>`;
                 }
-                return `<div id="comment-${comment.id}" class="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg flex justify-between items-center"> <div> <p><strong>${comment.user.name}</strong>: ${comment.content}</p> <small class="text-gray-500">just now</small> </div> ${deleteButtonHtml} </div>`;
+                
+                return `
+                    <div id="comment-${comment.id}" class="w-full bg-gray-100 dark:bg-gray-700 rounded-lg p-4 mb-3 ml-${comment.level || 0}">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <strong class="text-gray-900 dark:text-gray-100">${comment.user.name}</strong>
+                                <small class="text-gray-500 dark:text-gray-400 ml-2">just now</small>
+                            </div>
+                            ${optionsDropdownHtml}
+                        </div>
+                        <div class="mt-2 text-gray-800 dark:text-gray-200">
+                            ${comment.content}
+                        </div>
+                        <div class="mt-3">
+                            <button onclick="toggleReplyForm(${comment.id})" class="text-sm text-blue-500 hover:underline">
+                                Reply
+                            </button>
+                        </div>
+                        <form id="reply-form-${comment.id}" method="POST" action="/posts/${comment.post_id}/comments" class="comment-form mt-3 hidden" data-post-id="${comment.post_id}">
+                            <input type="hidden" name="_token" value="${csrfToken}">
+                            <input type="hidden" name="parent_id" value="${comment.id}">
+                            <textarea name="content" rows="2" class="block w-full border-gray-300 rounded-md shadow-sm" placeholder="Write a reply..."></textarea>
+                            <div class="mt-2 flex justify-end">
+                                <button class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest" type="submit">REPLY</button>
+                            </div>
+                        </form>
+                        <div class="mt-4 border-l-2 border-gray-200 dark:border-gray-600 pl-4 comment-children-container">
+                        </div>
+                    </div>
+                `;
             }
         });
     </script>
+
+    <x-confirm-modal />
 </x-app-layout>
