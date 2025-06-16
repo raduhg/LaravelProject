@@ -9,9 +9,6 @@ use App\Http\Controllers\UpcomingTripsController;
 use App\Http\Controllers\UpcomingTripsParticipantsController;
 use Illuminate\Support\Facades\Route;
 
-
-
-
 Route::get('/', function () {
     return view('welcome');
 });
@@ -54,10 +51,8 @@ Route::delete('/dashboard/{trip}', [UpcomingTripsController::class, 'destroy'])-
 Route::post('/dashbord/{trip}/joinTrip', [UpcomingTripsParticipantsController::class, 'joinTrip'])->middleware('auth')->name('trip.join');
 Route::post('/dashboard/{trip}/leaveTrip', [UpcomingTripsParticipantsController::class, 'leaveTrip'])->middleware('auth')->name('trip.leave');
 
-Route::get('/contacts.response', function () {
-    return view('contacts.response');
-})->middleware(['auth', 'admin'])->name('contacts.response');
-
-//Route::post('/emails.response-email', [EmailController::class, 'sendResponse'])->name('email.response-email');
+Route::post('/contacts/{contact}/reply', [ContactController::class, 'sendReply'])
+    ->middleware(['auth', 'admin'])
+    ->name('contacts.reply');
 
 require __DIR__ . '/auth.php';

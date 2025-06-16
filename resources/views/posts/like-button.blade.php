@@ -2,7 +2,6 @@
     $isLiked = auth()->user()->likesPost($post);
 @endphp
 
-
 <form method="POST" action="{{ route('posts.like.toggle', $post) }}" class="like-form" data-post-id="{{ $post->id }}">
     @csrf
     <button type="submit"

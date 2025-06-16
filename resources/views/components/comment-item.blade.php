@@ -1,19 +1,15 @@
 @php
-    // Sets a default nesting level if one isn't passed
     $level = $level ?? 0;
 @endphp
 
-{{-- Main container for the entire comment item --}}
 <div id="comment-{{ $comment->id }}" class="w-full rounded-lg p-4 mb-3 ml-{{ $level }}">
     
     <div class="flex justify-between items-start">
-        {{-- User Info --}}
         <div>
             <strong class="text-gray-900 dark:text-gray-100">{{ $comment->user->name }}</strong>
             <small class="text-gray-500 dark:text-gray-400 ml-2">{{ $comment->created_at->diffForHumans() }}</small>
         </div>
         
-        {{-- Options Dropdown (Edit/Delete) --}}
         @if ($comment->user->is(auth()->user()) || (auth()->user() && auth()->user()->is_admin))
             <x-dropdown>
                 <x-slot name="trigger">
@@ -24,7 +20,6 @@
                     </button>
                 </x-slot>
                 <x-slot name="content">
-                    {{-- Note: Add an edit link/form here if you build that functionality --}}
                     
                     <form method="POST" action="{{ route('comments.destroy', $comment) }}" class="delete-comment-form">
                         @csrf
@@ -33,7 +28,6 @@
                             Delete
                         </button>
                     </form>
-                    {{-- The extra </form> tag was removed from here --}}
                 </x-slot>
             </x-dropdown>
         @endif
@@ -52,7 +46,7 @@
     <form id="reply-form-{{ $comment->id }}" method="POST" action="{{ route('posts.comments.store', $comment->post) }}" class="comment-form mt-3 hidden" data-post-id="{{ $comment->post->id }}">
         @csrf
         <input type="hidden" name="parent_id" value="{{ $comment->id }}">
-        <textarea name="content" rows="2" class="block w-full border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md shadow-sm" placeholder="Write a reply..."></textarea>
+        <textarea name="content" rows="2" class="block w-full border-gray-300 focus:border-indigo-300 bg-gray-700 text-gray-100 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md shadow-sm" placeholder="Write a reply..."></textarea>
         <div class="mt-2 flex justify-end">
             <x-primary-button type="submit">REPLY</x-primary-button>
         </div>

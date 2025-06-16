@@ -16,16 +16,23 @@
     </div>
 
     <div class="py-12">
-        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-5xl mx-auto sm:px-6 lg:p-8">
             <div id="posts-container" class="flex flex-col gap-4">
                 @foreach ($posts as $post)
                 <div id="post-{{ $post->id }}" class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg">
                     <div class="p-2 sm:p-6 text-gray-900 dark:text-gray-100 flex flex-col gap-4">
-                        <div class="flex justify-between">
-                            <h4 class="text-gray-900 dark:text-gray-100">{{ $post->user->name }}</h4>
-                            @unless ($post->created_at->eq($post->updated_at))
-                            <small class="text-sm text-gray-600"> &middot; {{ __('edited') }}</small>
-                            @endunless
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <img class="h-10 w-10 rounded-full object-cover mr-3" src="{{ $post->user->avatar }}"
+                                    alt="{{ $post->user->name }}">
+                                <div>
+                                    <h4 class="text-gray-900 dark:text-gray-100 font-semibold">
+                                        {{ $post->user->name }}</h4>
+                                    @unless ($post->created_at->eq($post->updated_at))
+                                    <small class="text-sm text-gray-600"> &middot; {{ __('edited') }}</small>
+                                    @endunless
+                                </div>
+                            </div>
                             @if ($post->user->is(auth()->user()) || (auth()->user() && auth()->user()->is_admin))
                             <x-dropdown>
                                 <x-slot name="trigger">
@@ -45,9 +52,9 @@
                                         class="delete-form">
                                         @csrf
                                         @method('delete')
-                                        <x-dropdown-link href="#" type="submit">
+                                        <button type="button" class="post-delete-trigger block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-800 transition duration-150 ease-in-out">
                                             {{ __('Delete') }}
-                                        </x-dropdown-link>
+                                        </button>
                                     </form>
                                 </x-slot>
                             </x-dropdown>
@@ -60,13 +67,16 @@
                         @endif
                         <div class="flex justify-between items-center">
                             <div class="flex items-center gap-4">
-                                @include('posts.like-button', ['post' => $post])
-                                <span id="like-count-{{ $post->id }}">{{ $post->likes()->count() }}</span>
+                                <span class="flex items-center gap-1">
+                                    @include('posts.like-button', ['post' => $post])
+                                    <span id="like-count-{{ $post->id }}">{{ $post->likes()->count() }}</span>
+                                </span>
                                 <span class="flex items-center">&#9997; <span id="comment-count-{{ $post->id }}"
                                         class="ml-1">{{ $post->comments()->count() }}</span></span>
                             </div>
                             <div>
-                                <p class="self-end text-sm text-gray-600">{{ $post->created_at->diffForHumans() }}</p>
+                                <p class="self-end text-sm text-gray-600">{{ $post->created_at->diffForHumans() }}
+                                </p>
                             </div>
                         </div>
                         <div class="mt-4">
@@ -109,7 +119,7 @@
                 formToSubmit = null;
                 if(modal) modal.classList.add('hidden');
             }
-            
+
             if(modal) {
                 modalConfirmButton.addEventListener('click', () => {
                     if (formToSubmit) {
@@ -142,6 +152,17 @@
                 }, 5000);
             }
 
+            document.body.addEventListener('click', function(e) {
+                const deleteTrigger = e.target.closest('.post-delete-trigger');
+                if (deleteTrigger) {
+                    e.preventDefault();
+                    const form = deleteTrigger.closest('form');
+                    if (form) {
+                        showConfirmModal(form);
+                    }
+                }
+            });
+
             document.body.addEventListener('submit', function(e) {
                 const form = e.target.closest('form');
                 if (!form) return;
@@ -167,10 +188,12 @@
                         const likeButton = form.querySelector('button');
                         const likeIcon = form.querySelector('svg');
                         if (data.liked) {
-                            likeButton.classList.remove('text-gray-400'); likeButton.classList.add('text-red-500');
+                            likeButton.classList.remove('text-gray-400');
+                            likeButton.classList.add('text-red-500');
                             likeIcon.setAttribute('fill', 'currentColor');
                         } else {
-                            likeButton.classList.remove('text-red-500'); likeButton.classList.add('text-gray-400');
+                            likeButton.classList.remove('text-red-500');
+                            likeButton.classList.add('text-gray-400');
                             likeIcon.setAttribute('fill', 'none');
                         }
                     });
@@ -202,12 +225,12 @@
                         countEl.textContent = parseInt(countEl.textContent || '0') + 1;
                         form.reset();
                         if (comment.parent_id) {
-                           form.classList.add('hidden'); 
+                           form.classList.add('hidden');
                         }
                     });
                 }
 
-                if (form.matches('.delete-form') || form.matches('.delete-comment-form')) {
+                if (form.matches('.delete-comment-form')) {
                     e.preventDefault();
                     showConfirmModal(form);
                 }
@@ -215,7 +238,11 @@
 
             function deletePost(form) {
                 const postId = form.closest('[id^="post-"]').id.split('-')[1];
-                fetch(form.action, { method: 'POST', body: new FormData(form), headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }})
+                fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }
+                })
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById(`post-${postId}`).remove();
@@ -226,7 +253,11 @@
             function deleteComment(form) {
                 const commentDiv = form.closest('[id^="comment-"]');
                 const postId = form.closest('[id^="post-"]').id.split('-')[1];
-                fetch(form.action, { method: 'POST', body: new FormData(form), headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }})
+                fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }
+                })
                 .then(response => {
                     if (response.ok) {
                         commentDiv.remove();
@@ -240,9 +271,9 @@
                 const imageUrl = post.image ? `<img src="/storage/${post.image}" style="max-width:100%; max-height:550px;" class="self-center">` : '';
                 let dropdownHtml = '';
                 if (authUser.id === post.user.id || authUser.is_admin) {
-                    dropdownHtml = `<div x-data="{ open: false }" @@click.outside="open = false" class="relative"> <button @@click="open = !open"> <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" /></svg> </button> <div x-show="open" class="absolute z-50 mt-2 w-48 rounded-md shadow-lg right-0 bg-white ring-1 ring-black ring-opacity-5" style="display: none;"> <div class="py-1"> <a href="/posts/${post.id}/edit" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Edit</a> <form method="POST" action="/posts/${post.id}" class="delete-form"> <input type="hidden" name="_token" value="${csrfToken}"> <input type="hidden" name="_method" value="delete"> <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Delete</button> </form> </div> </div> </div>`;
+                    dropdownHtml = `<div x-data="{ open: false }" @@click.outside="open = false" class="relative"> <button @@click="open = !open"> <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" /></svg> </button> <div x-show="open" class="absolute z-50 mt-2 w-48 rounded-md shadow-lg right-0 bg-white ring-1 ring-black ring-opacity-5" style="display: none;"> <div class="py-1"> <a href="/posts/${post.id}/edit" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Edit</a> <form method="POST" action="/posts/${post.id}" class="delete-form"> <input type="hidden" name="_token" value="${csrfToken}"> <input type="hidden" name="_method" value="delete"> <button type="button" class="post-delete-trigger block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-800 transition duration-150 ease-in-out">Delete</button> </form> </div> </div> </div>`;
                 }
-                return `<div id="post-${post.id}" class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg"> <div class="p-2 sm:p-6 text-gray-900 dark:text-gray-100 flex flex-col gap-4"> <div class="flex justify-between"> <h4 class="text-gray-900 dark:text-gray-100">${post.user.name}</h4> ${dropdownHtml} </div> <p class="text-gray-900 dark:text-gray-100">${post.message}</p> ${imageUrl} <div class="flex justify-between items-center"> <div class="flex items-center gap-4"> <form method="POST" action="/posts/${post.id}/like" class="like-form" data-post-id="${post.id}"> <input type="hidden" name="_token" value="${csrfToken}"> <button type="submit" class="flex items-center transition-colors duration-200 ease-in-out text-gray-400 hover:text-red-500"> <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg> </button> </form> <span id="like-count-${post.id}">0</span> <span class="flex items-center">&#9997; <span id="comment-count-${post.id}" class="ml-1">0</span></span> </div> <div><p class="self-end text-sm text-gray-600">just now</p></div> </div> <div class="mt-4"> <form method="POST" action="/posts/${post.id}/comments" class="comment-form" data-post-id="${post.id}"> <input type="hidden" name="_token" value="${csrfToken}"> <textarea name="content" placeholder="Leave a comment" rows="1" class="block w-full bg-gray-700 border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md shadow-sm" required></textarea> <button type="submit" class="mt-4 inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">POST</button> </form> <div id="comments-section-${post.id}" class="overflow-auto max-h-[700px] overflow-x-hidden space-y-2 mt-4"></div> </div> </div> </div>`;
+                return `<div id="post-${post.id}" class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg"> <div class="p-2 sm:p-6 text-gray-900 dark:text-gray-100 flex flex-col gap-4"> <div class="flex justify-between items-center"> <div class="flex items-center"> <img class="h-10 w-10 rounded-full object-cover mr-3" src="${post.user.avatar}" alt="${post.user.name}"> <div> <h4 class="text-gray-900 dark:text-gray-100 font-semibold">${post.user.name}</h4> </div> </div> ${dropdownHtml} </div> <p class="text-gray-900 dark:text-gray-100">${post.message}</p> ${imageUrl} <div class="flex justify-between items-center"> <div class="flex items-center gap-4"> <form method="POST" action="/posts/${post.id}/like" class="like-form" data-post-id="${post.id}"> <input type="hidden" name="_token" value="${csrfToken}"> <button type="submit" class="flex items-center transition-colors duration-200 ease-in-out text-gray-400 hover:text-red-500"> <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg> </button> </form> <span id="like-count-${post.id}">0</span> <span class="flex items-center">&#9997; <span id="comment-count-${post.id}" class="ml-1">0</span></span> </div> <div><p class="self-end text-sm text-gray-600">just now</p></div> </div> <div class="mt-4"> <form method="POST" action="/posts/${post.id}/comments" class="comment-form" data-post-id="${post.id}"> <input type="hidden" name="_token" value="${csrfToken}"> <textarea name="content" placeholder="Leave a comment" rows="1" class="block w-full bg-gray-700 border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md shadow-sm" required></textarea> <button type="submit" class="mt-4 inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">POST</button> </form> <div id="comments-section-${post.id}" class="overflow-auto max-h-[700px] overflow-x-hidden space-y-2 mt-4"></div> </div> </div> </div>`;
             }
 
             function createCommentHtml(comment) {
@@ -271,7 +302,7 @@
                         <form id="reply-form-${comment.id}" method="POST" action="/posts/${comment.post_id}/comments" class="comment-form mt-3 hidden" data-post-id="${comment.post_id}">
                             <input type="hidden" name="_token" value="${csrfToken}">
                             <input type="hidden" name="parent_id" value="${comment.id}">
-                            <textarea name="content" rows="2" class="block w-full border-gray-300 rounded-md shadow-sm" placeholder="Write a reply..."></textarea>
+                            <textarea name="content" rows="2" class="block w-full border-gray-300 text-gray-100 bg-gray-700 rounded-md shadow-sm" placeholder="Write a reply..."></textarea>
                             <div class="mt-2 flex justify-end">
                                 <button class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest" type="submit">REPLY</button>
                             </div>

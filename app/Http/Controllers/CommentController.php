@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use App\Notifications\NewCommentReply;
 
 class CommentController extends Controller
 {
@@ -29,6 +30,14 @@ class CommentController extends Controller
             'content' => $validated['content'],
             'parent_id' => $validated['parent_id'] ?? null,
         ]);
+
+        if ($comment->parent_id) {
+            $parentComment = Comment::find($comment->parent_id);
+            // No notification if a user replies to their own comment
+            if ($parentComment && $parentComment->user_id !== $comment->user_id) {
+                $parentComment->user->notify(new NewCommentReply($comment));
+            }
+        }
 
         if ($request->wantsJson()) {
 

@@ -2,22 +2,28 @@
 
 namespace App\Mail;
 
+use App\Models\Contact;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use App\Models\User;
 
-class ResponseEmail extends Mailable
+class ContactFormReply extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
-    private User $user;
-    public function __construct(User $user)
+    public Contact $contact;
+    public string $replyMessage;
+
+    /**
+     * Create a new message instance.
+     */
+    public function __construct(Contact $contact, string $replyMessage)
     {
-        $this->user = $user;
+        $this->contact = $contact;
+        $this->replyMessage = $replyMessage;
     }
 
     /**
@@ -26,7 +32,7 @@ class ResponseEmail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'You become a member of' . config('app.name', '') . 'congrats!',
+            subject: 'Re: Your message to ' . config('app.name'),
         );
     }
 
@@ -36,20 +42,7 @@ class ResponseEmail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'emails.welcome-email',
-            with: [
-                'user' =>$this->user,
-            ]
+            markdown: 'emails.contact-reply',
         );
-    }
-
-    /**
-     * Get the attachments for the message.
-     *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
-     */
-    public function attachments(): array
-    {
-        return [];
     }
 }

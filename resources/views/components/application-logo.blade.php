@@ -1,7 +1,7 @@
 <style>
     .logo-fade {
-        width: 300px; /* Set your desired logo width */
-        height: auto; /* Maintain aspect ratio */
+        width: 300px;
+        height: auto;
         margin-top: 4rem;
         display: inline-block;
         position: relative;

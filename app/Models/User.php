@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class User extends Authenticatable
 {
@@ -22,6 +23,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'avatar',
     ];
 
     /**
@@ -75,5 +77,12 @@ class User extends Authenticatable
     public function joinedTrip(UpcomingTrips $trip)
     {
         return $this->participates()->where('upcoming_trips_id', $trip->id)->exists();
+    }
+
+    protected function avatar(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value ? asset('storage/' . $value) : asset('images/default-avatar.png'),
+        );
     }
 }
