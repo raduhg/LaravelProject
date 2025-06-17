@@ -31,5 +31,5 @@
         @endif
     </div>
     <div class="text-gray-400 m-2 text-sm">*To make a reservation for more people contact as via email at
-        radus_app@gmail.com</div>
+        another_step@gmail.com</div>
 </div>
