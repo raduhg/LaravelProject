@@ -1,55 +1,62 @@
 <?php
 
-namespace App\Mail;
+namespace App\Notifications;
 
-use App\Models\Contact; 
+use App\Models\Comment;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Mail\Mailable;
-use Illuminate\Mail\Mailables\Content;
-use Illuminate\Mail\Mailables\Envelope;
-use Illuminate\Queue\SerializesModels;
+use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
 
-class ContactFormReply extends Mailable implements ShouldQueue
+class NewCommentReply extends Notification implements ShouldQueue
 {
-    use Queueable, SerializesModels;
+    use Queueable;
+
+    public Comment $reply;
 
     /**
-     * The original contact form submission instance.
+     * Create a new notification instance.
      */
-    public Contact $contact;
-
-    /**
-     * The admin's reply message content.
-     */
-    public string $replyMessage;
-
-    /**
-     * Create a new message instance.
-     */
-    public function __construct(Contact $contact, string $replyMessage)
+    public function __construct(Comment $reply)
     {
-        $this->contact = $contact;
-        $this->replyMessage = $replyMessage;
+        $this->reply = $reply;
     }
 
     /**
-     * Get the message envelope.
+     * Get the notification's delivery channels.
+     *
+     * @return array<int, string>
      */
-    public function envelope(): Envelope
+    public function via(object $notifiable): array
     {
-        return new Envelope(
-            subject: 'Re: Your message to ' . config('app.name'),
-        );
+        return ['mail'];
     }
 
     /**
-     * Get the message content definition.
+     * Get the mail representation of the notification.
      */
-    public function content(): Content
+    public function toMail(object $notifiable): MailMessage
     {
-        return new Content(
-            markdown: 'emails.contact-reply',
-        );
+        $postUrl = route('posts.index') . '#post-' . $this->reply->post_id;
+
+        return (new MailMessage)
+                    ->subject('You have a new reply!')
+                    ->greeting('Hello, ' . $notifiable->name . '!')
+                    ->line($this->reply->user->name . ' has replied to your comment.')
+                    ->line('"' . $this->reply->content . '"')
+                    ->action('View Post', $postUrl)
+                    ->line('Thank you for being a part of our community!');
+    }
+
+    /**
+     * Get the array representation of the notification.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(object $notifiable): array
+    {
+        return [
+            //
+        ];
     }
 }
